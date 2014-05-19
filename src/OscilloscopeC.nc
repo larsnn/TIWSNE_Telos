@@ -107,44 +107,52 @@ implementation
      - if local sample buffer is full, send accumulated samples
      - read next sample
   */
-  event void Timer.fired() {
-	call Leds.led1Toggle();
-	
-	if(!sendBusy)
-	{
-	
-	if(counter % prime1 == 0 || counter % prime2 == 0)
-	{
-		call Leds.led2Toggle();
-		// Wakeup radio and send message and stop radio
-	   if (call RadioControl.start() != SUCCESS)
-      		report_problem();
-      	/*	
-   		local.readings[0] = 10;
-      		
-      	//while(!radioStarted)   		      
-    
-      	if (!sendBusy && sizeof local <= call AMSend.maxPayloadLength())
-  		{
-		    // Don't need to check for null because we've already checked length
-		    // above
-		    memcpy(call AMSend.getPayload(&sendBuf, sizeof(local)), &local, sizeof local);
-		    if (call AMSend.send(AM_BROADCAST_ADDR, &sendBuf, sizeof local) == SUCCESS)
-		      sendBusy = TRUE;
-		 }
-		 if (!sendBusy)
-  		 	report_problem();
-  		 	
-  		 
-  		 if (call RadioControl.stop() != SUCCESS)
-      		report_problem();
-  		 
-  		 radioStarted = 0;
-  		 call Leds.led2Off();
-  		 */
-	} 
-	 
+  event void Timer.fired() 
+  {
 	counter++;
+	call Leds.led1Toggle();
+
+	if(radioStarted)
+	{
+		call Leds.led2Off();
+		local.readings[0] = 11;      
+	
+		if (!sendBusy && sizeof local <= call AMSend.maxPayloadLength())
+		{
+			// Don't need to check for null because we've already checked length
+			// above
+			memcpy(call AMSend.getPayload(&sendBuf, sizeof(local)), &local, sizeof local);
+			if (call AMSend.send(AM_BROADCAST_ADDR, &sendBuf, sizeof local) == SUCCESS)
+			  sendBusy = TRUE;
+		 }
+		if (!sendBusy)
+			report_problem();
+		if (call RadioControl.stop() != SUCCESS)
+				report_problem();
+		radioStarted = 0;		
+	}
+	else
+	{
+		if(counter % prime1 == 0 || counter % prime2 == 0)
+		{
+			call Leds.led2On();
+			// Wakeup radio and send message
+		   if (call RadioControl.start() != SUCCESS)
+				report_problem();
+				
+			local.readings[0] = 10;      
+		
+			if (!sendBusy && sizeof local <= call AMSend.maxPayloadLength())
+			{
+				// Don't need to check for null because we've already checked length above
+				memcpy(call AMSend.getPayload(&sendBuf, sizeof(local)), &local, sizeof local);
+				if (call AMSend.send(AM_BROADCAST_ADDR, &sendBuf, sizeof local) == SUCCESS)
+				  sendBusy = TRUE;
+			 }
+			 if (!sendBusy)
+				report_problem();
+			 */
+		} 
 	}
   }
 
