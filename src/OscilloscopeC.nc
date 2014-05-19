@@ -21,6 +21,7 @@ module OscilloscopeC @safe()
   uses {
     interface Boot;
     interface SplitControl as RadioControl;
+    interface HplMsp430GeneralIO as Pin3;
     interface AMSend;
     interface Receive;
     interface Timer<TMilli>;
@@ -114,6 +115,7 @@ implementation
 
 	if(radioStarted)
 	{
+		call Pin3.clr();
 		call Leds.led2Off();
 		local.readings[0] = 11;      
 	
@@ -135,6 +137,7 @@ implementation
 	{
 		if(counter % prime1 == 0 || counter % prime2 == 0)
 		{
+			call Pin3.set();
 			call Leds.led2On();
 			// Wakeup radio and send message
 		   if (call RadioControl.start() != SUCCESS)
@@ -151,6 +154,7 @@ implementation
 			 }
 			 if (!sendBusy)
 				report_problem();
+			 
 		} 
 	}
   }

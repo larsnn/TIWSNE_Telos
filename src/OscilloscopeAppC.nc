@@ -16,15 +16,17 @@
  *
  * @author David Gay
  */
-configuration OscilloscopeAppC { }
+configuration OscilloscopeAppC {}
 implementation
 {
-  components OscilloscopeC, MainC, ActiveMessageC, LedsC,
+  components OscilloscopeC, MainC, ActiveMessageC, LedsC, 
+  HplMsp430GeneralIOC,
     new TimerMilliC(), new DemoSensorC() as Sensor, 
     new AMSenderC(AM_OSCILLOSCOPE), new AMReceiverC(AM_OSCILLOSCOPE);
 
   OscilloscopeC.Boot -> MainC;
   OscilloscopeC.RadioControl -> ActiveMessageC;
+  OscilloscopeC.Pin3 -> HplMsp430GeneralIOC.Port26;
   OscilloscopeC.AMSend -> AMSenderC;
   OscilloscopeC.Receive -> AMReceiverC;
   OscilloscopeC.Timer -> TimerMilliC;
