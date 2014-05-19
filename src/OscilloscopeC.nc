@@ -151,7 +151,6 @@ implementation
 			 }
 			 if (!sendBusy)
 				report_problem();
-			 */
 		} 
 	}
   }
