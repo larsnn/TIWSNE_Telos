@@ -66,8 +66,9 @@ module TransmitterC @safe() {
  * Led 1:
  * 		ON if the radio is on
  * 		OFF if the radio is off
- * Led 2 toggles in the following cases:
- * 		Messages is transmitted
+ * Led 2 
+ * 		ON between beginning send of a message and done sending of a message
+ * 		OFF otherwise
  * 
  * 
  * In error mode the following LED toggles:
@@ -90,6 +91,7 @@ implementation
 	nx_uint16_t currentPrime;
 	bool radioStarted = FALSE;
 	bool turnOffRadio = FALSE;
+	bool ledsOn = FALSE;
 
 	bool ledErrorMode = FALSE;
 	
@@ -103,19 +105,21 @@ implementation
   void startTimer() {
     call Timer.startPeriodic(256);
   }
-   
+     
   void turnRadioOff()
   {
 	if (call RadioControl.stop() != SUCCESS)
-		if(ledErrorMode)
+		if(ledErrorMode && ledsOn)
 			call Leds.led1On();
   }
+  
 	event void RadioControl.stopDone(error_t error) 
 	{
   		if(error != SUCCESS)
-  			if(ledErrorMode)
+  			if(ledErrorMode && ledsOn)
 				call Leds.led1On();
-  		if(!ledErrorMode)
+				
+  		if(!ledErrorMode && ledsOn)
   			call Leds.led1Off();
   		radioStarted = FALSE;
   	}
@@ -125,19 +129,24 @@ implementation
   {
   	DiscoMsg* msgPtr = (DiscoMsg*)(call Packet.getPayload(&msgmst, sizeof (DiscoMsg)));
     msgPtr->prime = currentPrime;
+    if(!ledErrorMode && ledsOn)
+    	call Leds.led2On();
     if (call AMSend.send(AM_BROADCAST_ADDR, &msgmst, sizeof(DiscoMsg)) == SUCCESS) 
     {
       sendBusy = TRUE;
     }
     else
     {
-    	if(ledErrorMode)
+    	if(ledErrorMode && ledsOn)
 			call Leds.led2Toggle();
     }    	
   }
 
   event void AMSend.sendDone(message_t* msg, error_t error) 
   {
+  	if(!ledErrorMode && ledsOn)
+  	call Leds.led2Off();
+  		
   	if(turnOffRadio)
   	{
   		turnRadioOff();
@@ -145,11 +154,10 @@ implementation
   	}
   		
   	if(error != SUCCESS)
-  		if(ledErrorMode)
+  		if(ledErrorMode && ledsOn)
 			call Leds.led2Toggle();
   	
-  	if(!ledErrorMode)
-  		call Leds.led2Toggle();
+
   		
     if (&msgmst == msg) {
       sendBusy = FALSE;
@@ -160,9 +168,9 @@ implementation
   event void RadioControl.startDone(error_t error) 
   {
   	if(error != SUCCESS)
-  		if(ledErrorMode)
+  		if(ledErrorMode && ledsOn)
 			call Leds.led0Toggle();
-	if(!ledErrorMode)
+	if(!ledErrorMode && ledsOn)
   		call Leds.led1On();
   		
   	radioStarted = TRUE;
@@ -176,7 +184,7 @@ implementation
   event void Timer.fired() 
   {
 	counter++;
-	if(!ledErrorMode)
+	if(!ledErrorMode && ledsOn)
 		call Leds.led0Toggle();
 
 	if(radioStarted)
@@ -184,9 +192,8 @@ implementation
 		call Pin3.clr();
 		
 		//By setting turnOffRadio to 1 the radio is turned off when the message is transmitted.
-		turnOffRadio = TRUE;
+		turnOffRadio = TRUE;	
 		transmitMsg();
-				
 	}
 	else
 	{
@@ -199,7 +206,7 @@ implementation
 			call Pin3.set();
 			// Wakeup radio. It automatically invokes transmitMsg
 			if (call RadioControl.start() != SUCCESS)
-				if(ledErrorMode)
+				if(ledErrorMode && ledsOn)
 					call Leds.led0Toggle();			 
 		} 
 	}

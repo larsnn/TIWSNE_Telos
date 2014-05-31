@@ -87,6 +87,7 @@ implementation
   int counter = 0;
   bool radioStarted = FALSE;
   bool ledErrorMode = FALSE;
+  bool ledsOn = FALSE;
   
 	typedef nx_struct DiscoMsg {
   	nx_uint16_t prime;
@@ -101,19 +102,19 @@ implementation
   
   event void RadioControl.startDone(error_t error) {
   	if(error != SUCCESS)
-  		if(ledErrorMode)
+  		if(ledErrorMode && ledsOn)
   			call Leds.led0Toggle();
   	  
-  	  if(!ledErrorMode)
+  	  if(!ledErrorMode && ledsOn)
   			call Leds.led1On();
   	radioStarted = TRUE;
   }
   
     event void RadioControl.stopDone(error_t error) {
   		if(error != SUCCESS)
-  			if(ledErrorMode)
+  			if(ledErrorMode && ledsOn)
   				call Leds.led1Toggle();
-  		if(!ledErrorMode)
+  		if(!ledErrorMode && ledsOn)
   			call Leds.led1Off();
   		radioStarted = FALSE;
   	}
@@ -121,7 +122,7 @@ implementation
   event void Timer.fired() 
   {
 	counter++;
-	if(!ledErrorMode)
+	if(!ledErrorMode && ledsOn)
 		call Leds.led0Toggle();
 
 	if(radioStarted)
@@ -129,17 +130,16 @@ implementation
 		call Pin3.clr();
 		
 		if (call RadioControl.stop() != SUCCESS)
-				if(ledErrorMode)
+				if(ledErrorMode && ledsOn)
 					call Leds.led1Toggle();	
 	}
 	else
 	{
 		if(counter % prime1 == 0 || counter % prime2 == 0)
 		{
-			call Pin3.set();
 			// Wakeup radio
 			if (call RadioControl.start() != SUCCESS)
-				if(ledErrorMode)
+				if(ledErrorMode && ledsOn)
 					call Leds.led0Toggle();			 
 		} 
 	}
@@ -150,7 +150,9 @@ implementation
 	    uint16_t prime = msgPtr->prime;
 	    if(prime == 7 || prime == 17)
 	    {
-	    	call Leds.led2Toggle();
+	    	if(!ledErrorMode && ledsOn)
+	    		call Leds.led2Toggle();
+	    	call Pin3.set();
 	    }
 	  }
 
